@@ -1,0 +1,38 @@
+# General system files
+.DS_Store
+Thumbs.db
+
+# Node.js
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+.idea/
+*.iml
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Build directories
+dist/
+build/
+
+# Log files
+*.log
+
+# IDE specific files
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# MacOS
+*.swp
+*.swo
