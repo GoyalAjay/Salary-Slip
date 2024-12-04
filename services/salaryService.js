@@ -27,3 +27,7 @@ export const bulkInsertSalaries = async (salaryData) => {
     const validatedData = validateAndCalculateSalaries(salaryData);
     return await SalarySlip.insertMany(validatedData);
 };
+
+// @desc Fetch Salary details
+// @route POST /api/employee/:empId
+// @access Private

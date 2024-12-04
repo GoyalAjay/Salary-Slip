@@ -1,45 +1,22 @@
 import asyncHandler from "../middleware/asyncHandler.js";
 import SalarySlip from "../model/SalarySlip.js";
 import Employee from "../model/Employees.js";
-
-// Validate and calculate salary data.
-// salaryData - Array of salary objects.
-// Array of validated and calculated salary objects.
-const validateAndCalculateSalaries = (salaryData) => {
-    return salaryData.map((data) => {
-        const payPerDay = data.baseSalary / data.numberOfDays;
-        const deductions = data.effectiveLeaves * payPerDay;
-        const inHandSalary = data.baseSalary - deductions;
-
-        // Add calculated fields
-        return {
-            ...data,
-            payPerDay: parseFloat(payPerDay.toFixed(3)),
-            deductions: parseFloat(deductions.toFixed(3)),
-            inHandSalary: parseFloat(inHandSalary.toFixed(3)),
-        };
-    });
-};
+import {
+    validateAndCalculateSalaries,
+    generateExcelFile,
+    getSalarySlips,
+} from "../utils/excelUtils.js";
 
 // @desc Create salary slip
-// @route POST /api/salary-slip/:employeeId
+// @route POST /api/salary-slip/
 // @access Private
 export const salarySlip = asyncHandler(async (req, res) => {
     const salaryData = req.body;
 
-    const salaryInHand = payPerDay * workingDays - deductions;
+    const data = validateAndCalculateSalaries(salaryData);
 
-    const insertedData = await Salary.insertMany(salaryData);
-
-    const newSalarySlip = await SalarySlip.create({
-        employee: employeeId,
-        baseSalary,
-        payPerDay,
-        inHandSalary,
-        accountNo,
-        ifscCode,
-    });
-    return res.json({ newSalarySlip });
+    const insertedData = await SalarySlip.insertMany(data);
+    return res.json({ insertedData });
 });
 
 // @desc Fetch employee details
@@ -56,4 +33,39 @@ export const fetchEmployeeDetails = asyncHandler(async (req, res) => {
     }
 
     return res.json({ employee: employee });
+});
+
+// @desc Fetch employee details
+// @route POST /api/employee/:empId
+// @access Private
+export const salarySlipExport = asyncHandler(async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    const salarySlips = await getSalarySlips(startDate, endDate);
+
+    const filePath = generateExcelFile(
+        salarySlips.map((slip) => ({
+            "Employee Id": `${slip.employee.empId}`,
+            Name: `${slip.employee.fName}${
+                slip.employee.mName && ` ${slip.employee.mName}`
+            }${slip.employee.lName && ` ${slip.employee.lName}`}`,
+            "Date Of Joining": `${slip.employee.dateOfJoining}`,
+            "Number Of Days": `${slip.numberOfDays}`,
+            "Working Days": slip.workingDays,
+            "Effective Leaves": slip.effectiveLeaves,
+            "Base Salary": slip.baseSalary,
+            "Pay Per Day": slip.payPerDay,
+            Deductions: slip.deductions,
+            "In Hand Salary": slip.inHandSalary,
+            "A/C No.": slip.accountNo,
+            "IFSC Code": slip.ifscCode,
+            "Created At": slip.createdAt,
+        }))
+    );
+    res.download(filePath, (err) => {
+        if (err) {
+            console.error("Error while sending the file: ", err);
+            res.status(500).send("Failed to download the file.");
+        }
+    });
 });
