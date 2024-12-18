@@ -15,15 +15,14 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser()); //cookie parser middlerware
-
 // CORS configuration
 var corsOption = {
     origin: [
         "http://localhost:3000",
-        "https://salary-slip-frontend-cdrxe1bxe-ajay-goyals-projects.vercel.app/",
+        "https://salary-slip-frontend-cdrxe1bxe-ajay-goyals-projects.vercel.app",
+        "https://salary-slip-frontend-ajay-goyals-projects.vercel.app",
+        "https://salary-slip-frontend.vercel.app",
+        "https://salary-slip-frontend-git-main-ajay-goyals-projects.vercel.app",
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
@@ -31,6 +30,10 @@ var corsOption = {
     optionsSuccessStatus: 204,
 };
 app.use(cors(corsOption));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser()); //cookie parser middlerware
 
 // Logging middleware
 app.use(morgan("dev"));
