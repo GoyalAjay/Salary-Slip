@@ -1,5 +1,4 @@
 import express from "express";
-const router = express.Router();
 import {
     addEmployees,
     getAllEmployees,
@@ -7,8 +6,10 @@ import {
 } from "../controller/employee.js";
 import { protect } from "../middleware/authMiddleware.js";
 
+const router = express.Router();
+
 router.route("/").get(protect, getAllEmployees);
-router.route("/:id").get(protect, getAnEmployee);
+router.route("/:empId").get(protect, getAnEmployee);
 
 // Route to add a new employee
 router.route("/add").post(protect, addEmployees);

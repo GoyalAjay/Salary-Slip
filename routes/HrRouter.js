@@ -1,9 +1,10 @@
 import express from "express";
-const router = express.Router();
 import { login, logout, addHR, getHRProfile } from "../controller/employee.js";
 import { protect } from "../middleware/authMiddleware.js";
 
-router.route("/add").post(protect, addHR);
+const router = express.Router();
+
+router.route("/add").post(addHR);
 router.route("/profile/:id").get(protect, getHRProfile);
 
 // Route to login

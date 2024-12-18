@@ -32,7 +32,7 @@ const humanResourcesSchema = new mongoose.Schema(
             required: true,
         },
         empRole: {
-            type: String,
+            type: [String],
         },
         isActive: {
             type: Boolean,

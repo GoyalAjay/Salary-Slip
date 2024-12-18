@@ -7,15 +7,9 @@ const employeeSchema = new mongoose.Schema(
             required: true,
             unique: true,
         },
-        fName: {
+        fullName: {
             type: String,
             required: true,
-        },
-        mName: {
-            type: String,
-        },
-        lName: {
-            type: String,
         },
         email: {
             type: String,
@@ -24,6 +18,10 @@ const employeeSchema = new mongoose.Schema(
         },
         mobile: {
             type: Number,
+            required: true,
+        },
+        companyName: {
+            type: String,
             required: true,
         },
         department: {
@@ -35,12 +33,35 @@ const employeeSchema = new mongoose.Schema(
         dateOfJoining: {
             type: Date,
         },
+        totalNoOfLeaves: {
+            type: Number,
+            required: true,
+        },
+        noOfLeavesThisMonth: {
+            type: Number,
+            required: true,
+        },
+        totalNoOfPresents: {
+            type: Number,
+            required: true,
+        },
+        noOfPresentsThisMonth: {
+            type: Number,
+            required: true,
+        },
+        today: {
+            type: String,
+            enum: ["", "present", "absent", "halfDay"],
+        },
         base: { type: Number, default: 0 },
         accountNo: {
             type: String,
         },
         ifscCode: {
             type: String,
+        },
+        lastUpdated: {
+            type: Date,
         },
         isActive: {
             type: Boolean,

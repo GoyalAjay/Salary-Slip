@@ -15,7 +15,34 @@ const protect = asyncHandler(async (req, res, next) => {
                 res.status(404);
                 throw new Error("HR not found");
             }
-            req.role = req.hr.empRole;
+            if (!req.hr.isActive) {
+                res.status(401);
+                throw new Error("Your account is deactivated");
+            }
+            const rolesHierarchy = {
+                hr: ["hr", "admin"],
+            };
+            const hrRoles = req.hr.empRole;
+            req.roles = new Set();
+            Object.values(rolesHierarchy).forEach((hierarchy) => {
+                hrRoles.forEach((role) => {
+                    const roleIndex = hierarchy.indexOf(role);
+                    if (roleIndex !== -1) {
+                        hierarchy.slice(0, roleIndex + 1).forEach((role) => {
+                            req.roles.add(role);
+                        });
+                    }
+                });
+            });
+
+            const requestedRole = req.query?.role;
+            if (!requestedRole || !req.roles.has(requestedRole)) {
+                res.status(403);
+                throw new Error(
+                    "You don't have the required permission for this role!!"
+                );
+            }
+            req.activeRole = requestedRole;
             next();
         } catch (error) {
             res.status(401);
