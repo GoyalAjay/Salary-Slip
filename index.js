@@ -23,7 +23,7 @@ app.use(cookieParser()); //cookie parser middlerware
 var corsOption = {
     origin: [
         "http://localhost:3000",
-        "https://jovial-panda-ca6208.netlify.app/",
+        "https://salary-slip-frontend-cdrxe1bxe-ajay-goyals-projects.vercel.app/",
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
