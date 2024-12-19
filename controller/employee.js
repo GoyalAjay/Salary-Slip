@@ -8,7 +8,7 @@ import { generateToken } from "../utils/generateToken.js";
 // @route POST /api/employee/add
 //@access Private
 export const addEmployees = asyncHandler(async (req, res) => {
-    if (req.activeRole && req.activeRole === "hr") {
+    if (req.activeRole && req.activeRole === "admin") {
         const {
             empId,
             name,
@@ -160,26 +160,24 @@ export const logout = (req, res) => {
 // @route GET /api/employee/
 // @access Private
 export const getAllEmployees = asyncHandler(async (req, res) => {
-    if (req.activeRole === "hr") {
-        const employeesGroupedByCompany = await Employee.aggregate([
-            {
-                $group: {
-                    _id: "$companyName", // Group by the company field
-                    employees: { $push: "$$ROOT" }, // Push the entire document to the group
-                },
+    const employeesGroupedByCompany = await Employee.aggregate([
+        {
+            $group: {
+                _id: "$companyName", // Group by the company field
+                employees: { $push: "$$ROOT" }, // Push the entire document to the group
             },
-            {
-                $project: {
-                    _id: 0, // Exclude _id field from the result
-                    company: "$_id", // Rename _id to company
-                    employees: 1, // Include the employees array
-                },
+        },
+        {
+            $project: {
+                _id: 0, // Exclude _id field from the result
+                company: "$_id", // Rename _id to company
+                employees: 1, // Include the employees array
             },
-        ]);
+        },
+    ]);
 
-        // Send the grouped data as an array
-        return res.json(employeesGroupedByCompany);
-    }
+    // Send the grouped data as an array
+    return res.json(employeesGroupedByCompany);
 });
 
 // @desc Get a particular employee
@@ -221,66 +219,70 @@ export const getHRProfile = asyncHandler(async (req, res) => {
 // @route PATCH /api/admin/update-attendance/:empId
 // @access Private
 export const attendanceUpdate = asyncHandler(async (req, res) => {
-    let { empId } = req.params;
-    const { attendanceStatus } = req.body;
+    if (req.activeRole === "admin") {
+        let { empId } = req.params;
+        const { attendanceStatus } = req.body;
 
-    const employee = await Employee.findOne({ empId: empId });
-    if (!employee) {
-        res.status(404);
-        throw new Error("No Employee found!!");
+        const employee = await Employee.findOne({ empId: empId });
+        if (!employee) {
+            res.status(404);
+            throw new Error("No Employee found!!");
+        }
+
+        // Check if the month has changed
+        const currentMonth = new Date().getMonth();
+        const lastUpdatedMonth = new Date(employee.lastUpdated).getMonth();
+
+        if (currentMonth !== lastUpdatedMonth) {
+            // Reset working days count if it's a new month
+            employee.noOfPresentsThisMonth = 0;
+            employee.noOfLeavesThisMonth = 0;
+        }
+
+        // Check the current `today` status and reverse its effects
+        switch (employee.today) {
+            case "present":
+                employee.totalNoOfPresents -= 1;
+                employee.noOfPresentsThisMonth -= 1;
+                break;
+            case "absent":
+                employee.totalNoOfLeaves -= 1;
+                employee.noOfLeavesThisMonth -= 1;
+                break;
+            // case "halfDay":
+            //     employee.totalNoOfHalfDays -= 1;
+            //     employee.noOfHalfDaysThisMonth -= 1;
+            //     break;
+            default:
+                break; // No action if `today` is empty or invalid
+        }
+
+        // Update the employee's attendance based on the new status
+        employee.today = attendanceStatus;
+        switch (attendanceStatus) {
+            case "present":
+                employee.totalNoOfPresents += 1;
+                employee.noOfPresentsThisMonth += 1;
+                break;
+            case "absent":
+                employee.totalNoOfLeaves += 1;
+                employee.noOfLeavesThisMonth += 1;
+                break;
+            // case "halfDay":
+            //     employee.totalNoOfHalfDays += 1;
+            //     employee.noOfHalfDaysThisMonth += 1;
+            //     break;
+            default:
+                employee.today = ""; // Clear today if invalid status
+                break;
+        }
+
+        // Update the last updated date
+        employee.lastUpdated = new Date().toISOString();
+
+        await employee.save();
+        res.json({ success: true });
     }
-
-    // Check if the month has changed
-    const currentMonth = new Date().getMonth();
-    const lastUpdatedMonth = new Date(employee.lastUpdated).getMonth();
-
-    if (currentMonth !== lastUpdatedMonth) {
-        // Reset working days count if it's a new month
-        employee.noOfPresentsThisMonth = 0;
-        employee.noOfLeavesThisMonth = 0;
-    }
-
-    // Check the current `today` status and reverse its effects
-    switch (employee.today) {
-        case "present":
-            employee.totalNoOfPresents -= 1;
-            employee.noOfPresentsThisMonth -= 1;
-            break;
-        case "absent":
-            employee.totalNoOfLeaves -= 1;
-            employee.noOfLeavesThisMonth -= 1;
-            break;
-        // case "halfDay":
-        //     employee.totalNoOfHalfDays -= 1;
-        //     employee.noOfHalfDaysThisMonth -= 1;
-        //     break;
-        default:
-            break; // No action if `today` is empty or invalid
-    }
-
-    // Update the employee's attendance based on the new status
-    employee.today = attendanceStatus;
-    switch (attendanceStatus) {
-        case "present":
-            employee.totalNoOfPresents += 1;
-            employee.noOfPresentsThisMonth += 1;
-            break;
-        case "absent":
-            employee.totalNoOfLeaves += 1;
-            employee.noOfLeavesThisMonth += 1;
-            break;
-        // case "halfDay":
-        //     employee.totalNoOfHalfDays += 1;
-        //     employee.noOfHalfDaysThisMonth += 1;
-        //     break;
-        default:
-            employee.today = ""; // Clear today if invalid status
-            break;
-    }
-
-    // Update the last updated date
-    employee.lastUpdated = new Date().toISOString();
-
-    await employee.save();
-    res.json({ success: true });
+    res.status(401);
+    throw new Error("Unauthorized!!");
 });
