@@ -3,6 +3,7 @@ import asyncHandler from "../middleware/asyncHandler.js";
 import Employee from "../model/Employees.js";
 import HR from "../model/HR.js";
 import { generateToken } from "../utils/generateToken.js";
+import { isSameDay } from "../utils/dateComparison.js";
 
 // @desc Add Employee
 // @route POST /api/employee/add
@@ -191,14 +192,12 @@ export const getAnEmployee = asyncHandler(async (req, res) => {
     // } else {
     //     employeeId = req.params.id;
     // }
-
     const employee = await Employee.findOne({ empId: empId });
-
-    if (employee) {
-        return res.json(employee);
+    if (!employee) {
+        res.stauts(400);
+        throw new Error("Employee not found!!");
     }
-    res.stauts(400);
-    throw new Error("Employee not found!!");
+    return res.json(employee);
 });
 
 // @desc Get a HR profile
@@ -221,12 +220,37 @@ export const getHRProfile = asyncHandler(async (req, res) => {
 export const attendanceUpdate = asyncHandler(async (req, res) => {
     if (req.activeRole === "admin") {
         let { empId } = req.params;
-        const { attendanceStatus } = req.body;
+        const { date, status } = req.body;
+
+        const today = new Date(date);
+        const startOfToday = new Date(
+            today.setUTCHours(0, 0, 0, 0)
+        ).toISOString();
 
         const employee = await Employee.findOne({ empId: empId });
         if (!employee) {
             res.status(404);
             throw new Error("No Employee found!!");
+        }
+
+        // Find if there's an attendance record for today
+        const todayRecordIndex = employee.attendance.findIndex((record) =>
+            isSameDay(record.date, startOfToday)
+        );
+        let previousStatus = null;
+
+        if (todayRecordIndex !== -1) {
+            // If today's record exists, store the previous status for adjustments
+            previousStatus = employee.attendance[todayRecordIndex].status;
+
+            // Update today's attendance status
+            employee.attendance[todayRecordIndex].status = status;
+        } else {
+            // If no record exists, add a new one for today
+            employee.attendance.push({
+                date: startOfToday, // Store current date in UTC
+                status: status,
+            });
         }
 
         // Check if the month has changed
@@ -240,7 +264,7 @@ export const attendanceUpdate = asyncHandler(async (req, res) => {
         }
 
         // Check the current `today` status and reverse its effects
-        switch (employee.today) {
+        switch (previousStatus) {
             case "present":
                 employee.totalNoOfPresents -= 1;
                 employee.noOfPresentsThisMonth -= 1;
@@ -256,10 +280,7 @@ export const attendanceUpdate = asyncHandler(async (req, res) => {
             default:
                 break; // No action if `today` is empty or invalid
         }
-
-        // Update the employee's attendance based on the new status
-        employee.today = attendanceStatus;
-        switch (attendanceStatus) {
+        switch (status) {
             case "present":
                 employee.totalNoOfPresents += 1;
                 employee.noOfPresentsThisMonth += 1;

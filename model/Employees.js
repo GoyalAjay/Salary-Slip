@@ -49,10 +49,15 @@ const employeeSchema = new mongoose.Schema(
             type: Number,
             required: true,
         },
-        today: {
-            type: String,
-            enum: ["", "present", "absent", "halfDay"],
-        },
+        attendance: [
+            {
+                date: { type: Date }, // Format: YYYY-MM-DD
+                status: {
+                    type: String,
+                    enum: ["", "present", "absent", "halfDay"],
+                },
+            },
+        ],
         base: { type: Number, default: 0 },
         accountNo: {
             type: String,
